@@ -1,0 +1,31 @@
+{
+    "terminal.integrated.profiles.linux": {
+        "PowerShell": {
+            "path": "/usr/bin/pwsh"
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "files.autoSave": "onWindowChange",
+    "files.eol": "\n",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true
+    },
+    "extensions.recommendations": [
+        "ms-vscode.powershell",
+        "ms-azuretools.vscode-docker"
+    ]
+}
