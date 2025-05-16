@@ -4,7 +4,7 @@
             "path": "/usr/bin/pwsh"
         }
     },
-    "terminal.integrated.defaultProfile.linux": "PowerShell",
+    "terminal.integrated.defaultProfile.linux": "bash",
     "terminal.integrated.profiles.windows": {
         "PowerShell": {
             "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
