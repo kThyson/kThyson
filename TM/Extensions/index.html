@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypingMind Dev Suite Userscript</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f7f9fc;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 48px auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px #0001;
+            padding: 32px;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 0.2em;
+        }
+
+        .meta {
+            color: #666;
+            font-size: 1em;
+            margin-bottom: 1.5em;
+        }
+
+        .install-btn {
+            display: inline-block;
+            background: linear-gradient(90deg, #0d193e, #27c956);
+            color: #fff;
+            font-size: 1.2em;
+            font-weight: 600;
+            padding: 14px 32px;
+            border-radius: 32px;
+            text-decoration: none;
+            margin: 1.5em 0;
+            transition: background 0.2s;
+        }
+
+        .install-btn:hover {
+            background: linear-gradient(90deg, #425cff, #27e6ba);
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .footer {
+            margin-top: 2em;
+            color: #888;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>TypingMind Dev Suite</h1>
+        <div class="meta">Modular code export, batch ZIP, markdown table beautifier, chat folding for TypingMind
+            (SPA/PWA robust)</div>
+        <a class="install-btn" href="./tm-dev-suite.js" download>Install Userscript</a>
+        <h2>How to Install</h2>
+        <ol>
+            <li>Install a userscript manager extension like <a href="https://www.tampermonkey.net/" target="_blank"
+                    rel="noopener">Tampermonkey</a> or <a href="https://violentmonkey.github.io/" target="_blank"
+                    rel="noopener">Violentmonkey</a>.</li>
+            <li>Click the <b>Install Userscript</b> button above, or <a href="./tm-dev-suite.js" download>right-click
+                    and copy link</a> to add it manually.</li>
+            <li>Approve the installation in your userscript manager.</li>
+        </ol>
+        <h2>Source Code</h2>
+        <pre><code>./tm-dev-suite.js</code></pre>
+        <div class="footer">MIT License &copy; 2024 TypingMind User</div>
+    </div>
+</body>
+
+</html>
