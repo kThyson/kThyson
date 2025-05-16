@@ -1,4 +1,5 @@
 {
+    "$schema": "vscode://schemas/settings",
     "terminal.integrated.profiles.linux": {
         "PowerShell": {
             "path": "/usr/bin/pwsh"
@@ -26,6 +27,14 @@
     },
     "extensions.recommendations": [
         "ms-vscode.powershell",
-        "ms-azuretools.vscode-docker"
-    ]
+        "ms-azuretools.vscode-docker",
+        "dbaeumer.vscode-eslint"
+    ],
+    "eslint.enable": true,
+    "eslint.validate": [
+        "javascript"
+    ],
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true
+    }
 }
