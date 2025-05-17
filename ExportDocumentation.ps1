@@ -84,10 +84,10 @@ foreach ($match in $sectionMatches) {
     # Extract 'type' and 'title' from YAML frontmatter
     $type = "Section"
     $title = "Untitled"
-    if ($yaml -match "(?m)^type:\s*\"?(.*?)\"?\s*$") {
+    if ($yaml -match '(?m)^type:\s*"?(.+?)"?\s*$') {
         $type = $Matches[1].Trim()
     }
-    if ($yaml -match "(?m)^title:\s*\"?(.*?)\"?\s*$") {
+    if ($yaml -match '(?m)^title:\s*"?(.+?)"?\s*$') {
         $title = $Matches[1].Trim()
     }
 
