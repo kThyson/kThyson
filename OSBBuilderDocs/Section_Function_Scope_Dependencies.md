@@ -1,3 +1,3 @@
 # Section: Function Scope Dependencies
 
-This section lists the scope dependencies for each public function in the OSDBuilder module. See the related documentation files for dependency details.
+Each public function in the OSDBuilder module may depend on specific global variables, configuration files, or other cmdlets. These dependencies are documented in the YAML metadata at the top of each function's documentation file. For example, a function may read from or write to global variables such as `$global:GetOSDBuilder` or `$global:SetOSDBuilder`, access registry keys, or require certain paths to exist. Reviewing the `scope_dependencies` and `cmdlet_dependencies` sections in each function's documentation will provide detailed information about what is required for successful execution.
