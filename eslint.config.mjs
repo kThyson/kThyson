@@ -3,11 +3,18 @@ export default [
         files: ["*.js"],
         languageOptions: {
             ecmaVersion: 2021,
-            sourceType: "module"
-        },
-        env: {
-            browser: true,
-            es2021: true
+            sourceType: "module",
+            globals: {
+                window: "readonly",
+                document: "readonly",
+                navigator: "readonly",
+                location: "readonly",
+                console: "readonly",
+                setTimeout: "readonly",
+                clearTimeout: "readonly",
+                setInterval: "readonly",
+                clearInterval: "readonly"
+            },
         },
         rules: {
             "no-unused-vars": "warn",
