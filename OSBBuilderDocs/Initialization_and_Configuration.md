@@ -1,3 +1,5 @@
 # Initialization and Configuration
 
 The OSDBuilder module relies on a specific initialization process and configuration settings, primarily managed by `Initialize-OSDBuilder.ps1` and utilized by `Get-OSDBuilder.ps1`.
+
+Initialization is performed by the `Initialize-OSDBuilder` function, which establishes the OSDBuilder home directory, sets up global variables, and loads configuration from JSON files. This process ensures that all paths, defaults, and operational parameters are correctly set for the module to function. If the environment is not already configured, `Get-OSDBuilder` will automatically call `Initialize-OSDBuilder`.
