@@ -1,169 +1,469 @@
 // ==UserScript==
-// @name         TypingMind Code Utils
-// @description  Collapsible code, copy, syntax highlight, line numbers, metadata, collapse all
-// @version      1.0
+// @name         TypingMind Dev Suite
+// @namespace    https://typingmind.com/
+// @version      3.3
+// @description  Modular code export, batch ZIP, markdown table beautifier, chat folding for TypingMind (SPA/PWA robust)
+// @author       TypingMind User
+// @license      MIT
 // @match        *://typingmind.com/*
 // @grant        none
 // ==/UserScript==
 
-/* - PRISM.JS (Material Dark theme): CDN injection if not already present - */
-(function injectPrism() {
-  if (!window.Prism) {
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-material-dark.min.css';
-    document.head.appendChild(link);
+(() => {
+    "use strict";
 
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js';
-    script.onload = function () {
-      // common languages (auto)
-      var scr = document.createElement('script');
-      scr.src = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js';
-      document.body.appendChild(scr);
+    // ====== Config & Selectors ======
+    const PREFIX = "tmdev-";
+    const TM_SELECTORS = {
+        chatBubble: ".chat-message-bubble",
+        codeBlock: "pre > code",
+        mainContent: ".main-content-area",
     };
-    document.body.appendChild(script);
 
-    // Enable line numbers plugin
-    var pl = document.createElement('script');
-    pl.src = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js';
-    document.body.appendChild(pl);
-
-    var pll = document.createElement('link');
-    pll.rel = 'stylesheet';
-    pll.href = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.css';
-    document.head.appendChild(pll);
+    // ---- Option 5: CSS Improvements (use variables, move inline to classes) ----
+    const CSS = `
+  :root {
+    --tm-floating-bar-left: 40px;
+    --tm-floating-bar-bottom: 44px;
+    --tm-floating-bar-z: 9999;
+    --tm-btn-bg: linear-gradient(90deg,#0d193e,#27c956);
+    --tm-btn-bg-hover: linear-gradient(90deg, #425cff, #27e6ba);
+    --tm-toast-bg: #232b44f2;
+    --tm-toast-fg: #f2f6ff;
+    --tm-toast-bg-light: #efeef9eb;
+    --tm-toast-fg-light: #1d2740;
+    --tm-toast-z: 20202;
+    --tm-toast-radius: 19px;
+    --tm-btn-radius: 24px;
+    --tm-btn-font: 16px;
+    --tm-codebar-btn-bg: linear-gradient(90deg,#173bd9,#27c956);
+    --tm-codebar-btn-bg-hover: linear-gradient(90deg,#2a64e8,#4ad684);
   }
-})();
-
-/* ------------- MAIN UTILITY FUNCTIONALITY ---------------------- */
-function updateAllCodeBlocks() {
-  const CODEBLOCK_SELECTOR = "pre > code";
-  const ALREADY_DONE = "tmutils-processed";
-
-  document.querySelectorAll(CODEBLOCK_SELECTOR).forEach((code, i) => {
-    const pre = code.parentElement;
-    if (pre.classList.contains(ALREADY_DONE)) return;
-    pre.classList.add(ALREADY_DONE);
-
-    // --- 1. Syntax Highlight: add Prism classes then highlight
-    pre.classList.add("line-numbers");
-    code.className = code.className || "language-javascript"; // fallback if not detected
-    if (window.Prism && window.Prism.highlightElement)
-      window.Prism.highlightElement(code);
-
-    // --- 2. Metadata block
-    const lang = (code.className.match(/language-(\w+)/)||[])[1] || "plain";
-    const lineCount = code.textContent.split(/\r?\n/).length;
-    const meta = document.createElement('div');
-    meta.className = "tmutils-metadata";
-    meta.innerHTML = `
-      <span style="font-size:0.92em;color:#888;">
-        <svg height="14" style="vertical-align:middle;margin-right:3px;fill:#666;" viewBox="0 0 14 14" width="14"><rect x="1" y="2" width="12" height="10" rx="2" ry="2" fill="none" stroke="#666" stroke-width="1.3"/><rect x="8" y="4" width="2.5" height="2.5" fill="none" stroke="#666" stroke-width="1.3"/></svg>
-        ${lang.toUpperCase()} &middot; ${lineCount} lines
-      </span>
-    `;
-    meta.style.cssText = "margin-bottom:4px;display:flex;align-items:center;gap:8px;";
-    pre.parentElement.insertBefore(meta, pre);
-
-    // --- 3. Copy button (material style clipboard)
-    const copyBtn = document.createElement('button');
-    copyBtn.title = "Copy code";
-    copyBtn.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle" viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="12" rx="2" fill="none"/><rect x="5" y="3" width="10" height="12" rx="2" fill="none"/></svg>`;
-    copyBtn.className = "tmutils-copy-btn";
-    copyBtn.style.cssText = `
-      background:none;border:none;padding:0 2px;cursor:pointer;float:right;color:#b3b3b3;
-      opacity:0.7;transition:opacity 0.1s;font-size:1.13em;position:absolute;right:7px;top:7px;z-index:3;
-    `;
-    copyBtn.onclick = function () {
-      navigator.clipboard.writeText(code.textContent);
-      copyBtn.style.opacity = 1;
-      copyBtn.style.color = "#3399ff";
-      setTimeout(() => {
-        copyBtn.style.opacity = 0.7;
-        copyBtn.style.color = "#b3b3b3";
-      }, 900);
-    };
-
-    // -- Absolute positioning: make pre relative
-    pre.style.position = "relative";
-    pre.appendChild(copyBtn);
-
-    // --- 4. Collapsible code block
-    const collapseBtn = document.createElement('button');
-    collapseBtn.title = "Collapse/expand code";
-    collapseBtn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle" viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg>`;
-    collapseBtn.className = "tmutils-collapse-btn";
-    collapseBtn.style.cssText = `
-      background:none;border:none;padding:0 3px;margin-left:7px;cursor:pointer;color:#bbb;
-      opacity:0.75;transition:opacity 0.15s;font-size:1em;position:absolute;left:7px;top:7px;z-index:3;
-    `;
-    let isCollapsed = false;
-    collapseBtn.onclick = function() {
-      isCollapsed = !isCollapsed;
-      code.style.display = isCollapsed ? "none" : "";
-      pre.classList.toggle("tmutils-collapsed", isCollapsed);
-      collapseBtn.style.transform = isCollapsed ? "rotate(-90deg)" : "";
-    };
-    pre.appendChild(collapseBtn);
-
-    // --- 5. Style improvements for consistency
-    pre.style.margin = "0 0 22px 0";
-    pre.style.background = "#1e1e1e";
-    pre.style.borderRadius = "8px";
-    pre.style.boxShadow = "0 1.5px 7px -3px #2224";
-    pre.style.paddingRight = "34px";
-  });
-}
-
-/* ------- Collapse/Expand All Button -------- */
-function buildCollapseAllButton() {
-  // Only one!
-  if (document.querySelector('.tmutils-collapseall-tool')) return;
-  const btn = document.createElement('button');
-  btn.className = "tmutils-collapseall-tool";
-  btn.title = "Collapse/expand all code blocks";
-  btn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="10" width="20" height="4" rx="1" fill="#333" stroke="#789"/></svg>`;
-  btn.style.cssText = `
-    position:fixed;top:94px;right:25px;z-index:50;
-    background:#2d3035eb;border:1px solid #384050;border-radius:8px;
-    color:#aaa;font-size:1.15em;padding:5px 12px;box-shadow:0 2px 10px #1113;opacity:.93;
-    cursor:pointer;transition:opacity .15s;
-  `;
-  let expanded = true;
-  btn.onclick = () => {
-    expanded = !expanded;
-    document.querySelectorAll("pre.tmutils-processed").forEach(pre=>{
-      pre.querySelector("code").style.display = expanded ? "" : "none";
-      pre.classList.toggle("tmutils-collapsed",!expanded);
-      // Animate button
-      pre.querySelector('.tmutils-collapse-btn').style.transform = expanded ? "" : "rotate(-90deg)";
-    });
-    btn.style.opacity = expanded ? ".93" : ".82";
-  };
-  document.body.appendChild(btn);
-}
-
-/* --------- Observer for Dynamic Content ---------- */
-const observer = new MutationObserver(() => {
-  updateAllCodeBlocks();
-  buildCollapseAllButton();
-});
-
-// Run on body for newly rendered chats/codes!
-observer.observe(document.body, { childList: true, subtree: true });
-document.addEventListener("DOMContentLoaded", ()=> {
-  updateAllCodeBlocks();
-  buildCollapseAllButton();
-});
-
-/* ---- Minimal styles for clarity (neutral, consistent with TypingMind's palette) ---- */
-const style = document.createElement('style');
-style.innerHTML = `
-.tmutils-metadata { font-family: Inter, sans-serif; padding-left:4px; letter-spacing:0.02em;}
-.tmutils-processed { transition: box-shadow 0.18s;}
-.tmutils-processed.tmutils-collapsed { box-shadow: none; }
-.tmutils-copy-btn:hover, .tmutils-collapse-btn:hover, .tmutils-collapseall-tool:hover { opacity:1; color:#38a; background:#242730ee; }
-.tmutils-copy-btn:active, .tmutils-collapse-btn:active, .tmutils-collapseall-tool:active { background:#19223abb; }
+  .${PREFIX}floating-bar {
+    position: fixed;
+    left: var(--tm-floating-bar-left);
+    bottom: var(--tm-floating-bar-bottom);
+    z-index: var(--tm-floating-bar-z);
+    background: #21263b;
+    border-radius: 12px;
+    box-shadow: 0 3px 16px #0b0d1a66;
+    padding: 12px 18px 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    opacity: .91;
+    transition: opacity .14s, background .12s;
+  }
+  .${PREFIX}floating-bar:hover { opacity: 1; }
+  .${PREFIX}floating-btn {
+    background: var(--tm-btn-bg);
+    color: #fff;
+    border: none;
+    border-radius: var(--tm-btn-radius);
+    padding: 8px 18px;
+    font-size: var(--tm-btn-font);
+    box-shadow: 0 1.5px 4px rgba(24,28,52,0.13);
+    cursor: pointer;
+    opacity: .89;
+    transition: background .14s,opacity .12s;
+    outline: none;
+  }
+  .${PREFIX}floating-btn:hover, .${PREFIX}floating-btn:focus { opacity: 1; background: var(--tm-btn-bg-hover);}
+  .${PREFIX}toast {
+    position: fixed;
+    top: 21px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: var(--tm-toast-z);
+    background: var(--tm-toast-bg);
+    color: var(--tm-toast-fg);
+    border-radius: var(--tm-toast-radius);
+    padding: 12px 30px;
+    font-size: 16px;
+    font-family: Inter, sans-serif;
+    box-shadow: 0 2px 14px #13172e77;
+    opacity: 0.93;
+    pointer-events: none;
+    text-align: center;
+    user-select: none;
+  }
+  .${PREFIX}fold-btn {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    background: #303c63;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 20px;
+    padding: 2px 9px 0 9px;
+    opacity: .76;
+    cursor: pointer;
+    transition:opacity .13s,background .13s;
+    outline: none;
+  }
+  .${PREFIX}fold-btn:hover, .${PREFIX}fold-btn:focus {opacity:1;background:#405799;}
+  .${PREFIX}collapsed-wrap {
+    min-height:36px;display:flex; align-items:center; cursor: pointer;
+    color: #60ffec; font-weight: 600; padding:18px 22px; font-size:16px; justify-content:center;
+  }
+  .${PREFIX}codebar {
+    position: absolute; top: 10px; right: 14px; display: flex; gap: 7px; z-index: 20;
+  }
+  .${PREFIX}codebar-btn {
+    background: var(--tm-codebar-btn-bg); color: #fff;
+    border: none; border-radius: 6px; padding: 6px 12px; font-size: 15px;
+    box-shadow: 0 1.5px 4px rgba(24,28,52,0.13); cursor: pointer; opacity: .89;
+    transition: background .14s,opacity .12s;
+    outline: none;
+  }
+  .${PREFIX}codebar-btn:hover, .${PREFIX}codebar-btn:focus { opacity: 1; background: var(--tm-codebar-btn-bg-hover);}
+  .${PREFIX}has-relative { position: relative !important; }
 `;
-document.head.appendChild(style);
+
+    // Injects the style tag once
+    function injectStyle() {
+        if (document.getElementById(PREFIX + "style")) return;
+        const style = document.createElement("style");
+        style.id = PREFIX + "style";
+        style.innerText = CSS;
+        document.head.appendChild(style);
+    }
+
+    // Improved toast notification with error handling (option 3)
+    function showToast(msg, time = 1700) {
+        let t = document.querySelector("." + PREFIX + "toast");
+        if (t) t.remove();
+        t = document.createElement("div");
+        t.className = PREFIX + "toast";
+        t.setAttribute("role", "alert");
+        t.setAttribute("aria-live", "polite");
+        t.innerHTML = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { if (t.parentNode) t.remove(); }, time);
+    }
+
+    // ======= Feature: Code Export & Batch ZIP ==========
+    class CodeExport {
+        get codeBlocks() {
+            return document.querySelectorAll(TM_SELECTORS.codeBlock);
+        }
+
+        /** Generates a filename for a code block based on its content and language. */
+        generateFilename(code, used) {
+            let codeText = code.innerText.trim(), filename = "", ext = "";
+            let m = codeText.match(/^```[\w#+-]*\s+([-\w.]+).*$/m);
+            if (m && m[1]) filename = m[1];
+            if (!filename) {
+                const header = codeText.split("\n").slice(0, 3);
+                for (let line of header) {
+                    let mm = line.match(/(?:#|\/\/|;)\s*([-\w]+\.\w+)/);
+                    if (mm && mm[1]) { filename = mm[1]; break; }
+                }
+            }
+            if (!filename) {
+                let lang = code.className.match(/language-(\w+)/)?.[1] || "txt";
+                ext = ({
+                    python: ".py", javascript: ".js", typescript: ".ts", json: ".json",
+                    bash: ".sh", shell: ".sh", powershell: ".ps1", batch: ".bat", cmd: ".bat",
+                    java: ".java", sql: ".sql", cpp: ".cpp", c: ".c", html: ".html", css: ".css",
+                    php: ".php", md: ".md", go: ".go", rust: ".rs", ruby: ".rb"
+                })[lang] || ".txt";
+                filename = `exported-code-${lang}${ext}`;
+            }
+            if (!/\.\w+$/i.test(filename)) filename += ".txt";
+            if (used[filename]) { filename = filename.replace(/(\.\w+$)/, `_${used[filename]}$1`); }
+            used[filename] = (used[filename] || 0) + 1;
+            return filename;
+        }
+
+        /** Adds export/copy buttons to all code blocks */
+        injectPerBlock() {
+            this.codeBlocks.forEach(code => {
+                const pre = code.parentElement;
+                if (pre.classList.contains(PREFIX + "has-codebar")) return;
+                pre.classList.add(PREFIX + "has-codebar");
+                if (window.getComputedStyle(pre).position === "static") pre.classList.add(PREFIX + "has-relative");
+                pre.querySelectorAll("." + PREFIX + "codebar").forEach(e => e.remove());
+                const bar = document.createElement("div"); bar.className = PREFIX + "codebar";
+                bar.appendChild(this._createExportBtn(code));
+                bar.appendChild(this._createCopyBtn(code));
+                pre.appendChild(bar);
+            });
+        }
+
+        _createExportBtn(code) {
+            const eBtn = document.createElement("button");
+            eBtn.className = PREFIX + "codebar-btn"; eBtn.innerHTML = "💾";
+            eBtn.title = "Export this code as file"; eBtn.setAttribute("aria-label", "Export code block");
+            eBtn.onclick = ev => {
+                ev.stopPropagation();
+                try {
+                    const filename = this.generateFilename(code, {});
+                    const blob = new Blob([code.innerText.replace(/\n$/, "")], { type: "application/octet-stream" });
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob); a.download = filename;
+                    document.body.appendChild(a); a.click();
+                    setTimeout(() => { if (a.parentNode) document.body.removeChild(a); }, 80);
+                    try { navigator.clipboard.writeText(filename); } catch (e) { showToast("File saved but could not copy filename!"); }
+                    eBtn.innerHTML = "✅"; setTimeout(() => { eBtn.innerHTML = "💾"; }, 1150);
+                    showToast(`<b>${filename}</b> saved &amp; copied!`);
+                } catch (err) {
+                    showToast("Error exporting file.");
+                }
+            };
+            return eBtn;
+        }
+
+        _createCopyBtn(code) {
+            const cBtn = document.createElement("button");
+            cBtn.className = PREFIX + "codebar-btn"; cBtn.innerHTML = "📋";
+            cBtn.title = "Copy code"; cBtn.setAttribute("aria-label", "Copy code block");
+            cBtn.onclick = ev => {
+                ev.stopPropagation();
+                try {
+                    navigator.clipboard.writeText(code.innerText.trim());
+                    cBtn.innerHTML = "✅"; setTimeout(() => cBtn.innerHTML = "📋", 900);
+                    showToast("Code copied!");
+                } catch (err) {
+                    showToast("Copy failed. Your browser may not support it.");
+                }
+            };
+            return cBtn;
+        }
+
+        removePerBlock() {
+            document.querySelectorAll("." + PREFIX + "has-codebar").forEach(pre => {
+                pre.classList.remove(PREFIX + "has-codebar");
+                pre.classList.remove(PREFIX + "has-relative");
+                pre.querySelectorAll("." + PREFIX + "codebar").forEach(el => el.remove());
+            });
+        }
+
+        injectJSZip(cb) {
+            if (window.JSZip) return cb();
+            if (document.getElementById(PREFIX + "jszip")) return;
+            var s = document.createElement("script");
+            s.id = PREFIX + "jszip";
+            s.src = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+            s.integrity = "sha384-tkPP03pLyMtXk8X8yt5tsuLbl/HN/jwNFUIMJ+UYhVCpNSab6iCMpwLu9nslNWZZ";
+            s.crossOrigin = "anonymous";
+            s.onload = cb;
+            s.onerror = () => showToast("Failed to load ZIP library.", 2000);
+            document.head.appendChild(s);
+        }
+
+        batchZipExport() {
+            const codeBlocks = [...this.codeBlocks];
+            if (!codeBlocks.length) return showToast("No code blocks found.", 1100);
+            if (!window.JSZip) return showToast("ZIP library not loaded.", 1500);
+            const zip = new JSZip(), used = {};
+            codeBlocks.forEach(code => {
+                const filename = this.generateFilename(code, used);
+                zip.file(filename, code.innerText.replace(/\n$/, ""));
+            });
+            zip.generateAsync({ type: "blob" }).then(content => {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(content);
+                a.download = "chat-codeblocks.zip";
+                document.body.appendChild(a); a.click();
+                setTimeout(() => { if (a.parentNode) document.body.removeChild(a); }, 80);
+                showToast(`Exported <b>${codeBlocks.length}</b> files as ZIP<br><span style="font-size:14px;">(chat-codeblocks.zip)</span>`, 2100 + 300 * codeBlocks.length);
+            }).catch(() => showToast("ZIP export failed.", 2000));
+        }
+        init() { this.injectPerBlock(); }
+        cleanup() { this.removePerBlock(); }
+    }
+
+    // ========== Table Beautify ==========
+    class TableBeautify {
+        alignTable(txt) {
+            const lines = txt.split("\n");
+            if (!lines.some(l => l.includes("|"))) return txt;
+            let tableLines = [], out = [];
+            for (let i = 0; i < lines.length; ++i) {
+                let line = lines[i];
+                if (line.includes("|")) { tableLines.push(line); }
+                else if (tableLines.length > 1) { out.push(this.formatTable(tableLines)); tableLines = []; out.push(line); }
+                else out.push(line);
+            }
+            if (tableLines.length > 1) out.push(this.formatTable(tableLines));
+            return out.join("\n");
+        }
+
+        formatTable(lines) {
+            const rows = lines.map(row => row.trim().replace(/^[|]/, "").replace(/[|]$/, "").split("|").map(c => c.trim()));
+            const colWidths = [];
+            rows.forEach(row => {
+                row.forEach((cell, i) => colWidths[i] = Math.max(colWidths[i] || 0, cell.length));
+            });
+            return rows.map(row => "| " + row.map((cell, i) => cell.padEnd(colWidths[i], " ")).join(" | ") + " |").join("\n");
+        }
+
+        beautifyTables() {
+            let beautifiedCount = 0;
+            document.querySelectorAll(TM_SELECTORS.codeBlock).forEach(code => {
+                if (code.classList && code.classList.contains(PREFIX + "mdtbl-beautified")) return;
+                const txt = code.innerText;
+                if (txt.includes("|")) {
+                    const formatted = this.alignTable(txt);
+                    if (formatted !== txt) {
+                        code.innerText = formatted;
+                        code.classList && code.classList.add(PREFIX + "mdtbl-beautified");
+                        beautifiedCount++;
+                    }
+                }
+            });
+            if (beautifiedCount) showToast(`Beautified <b>${beautifiedCount}</b> table(s)!`);
+            else showToast("No tables found");
+        }
+        cleanup() {
+            document.querySelectorAll("." + PREFIX + "mdtbl-beautified").forEach(code => code.classList.remove(PREFIX + "mdtbl-beautified"));
+        }
+        init() { }
+    }
+
+    // ========== Chat Folding ==========
+    class ChatFold {
+        foldChats() {
+            document.querySelectorAll(TM_SELECTORS.chatBubble).forEach(bubble => {
+                if (bubble.classList.contains(PREFIX + "has-fold")) return;
+                if (!bubble.querySelector("." + PREFIX + "fold-wrap")) {
+                    const w = document.createElement("div");
+                    w.className = PREFIX + "fold-wrap";
+                    while (bubble.childNodes.length) w.appendChild(bubble.childNodes[0]);
+                    bubble.appendChild(w);
+                }
+                if (!bubble.querySelector("." + PREFIX + "fold-btn")) {
+                    const btn = document.createElement("button");
+                    btn.innerHTML = "▼"; btn.className = PREFIX + "fold-btn";
+                    btn.title = "Collapse message";
+                    btn.setAttribute("aria-label", "Collapse chat message");
+                    let folded = false;
+                    btn.onclick = function (ev) {
+                        ev.stopPropagation();
+                        const wrap = bubble.querySelector("." + PREFIX + "fold-wrap");
+                        if (!folded) {
+                            wrap.style.display = "none";
+                            let collapsed = document.createElement("div");
+                            collapsed.className = PREFIX + "collapsed-wrap";
+                            collapsed.textContent = "[Click to expand]";
+                            collapsed.tabIndex = 0;
+                            collapsed.setAttribute("aria-label", "Expand chat message");
+                            collapsed.onclick = function (e) { e.stopPropagation(); wrap.style.display = ""; folded = false; collapsed.remove(); btn.innerHTML = "▼"; };
+                            collapsed.onkeyup = function (e) { if (e.key === "Enter" || e.key === " ") { collapsed.click(); } };
+                            bubble.appendChild(collapsed);
+                            btn.innerHTML = "▲"; folded = true;
+                        }
+                    };
+                    bubble.appendChild(btn);
+                }
+                bubble.classList.add(PREFIX + "has-fold");
+                if (getComputedStyle(bubble).position === "static") bubble.style.position = "relative";
+            });
+        }
+        cleanup() {
+            document.querySelectorAll("." + PREFIX + "has-fold").forEach(bubble => {
+                bubble.classList.remove(PREFIX + "has-fold");
+                bubble.querySelectorAll("." + PREFIX + "fold-btn").forEach(el => el.remove());
+                let wrap = bubble.querySelector("." + PREFIX + "fold-wrap");
+                if (wrap) wrap.style.display = "";
+                bubble.querySelectorAll("." + PREFIX + "collapsed-wrap").forEach(el => el.remove());
+            });
+        }
+        init() { this.foldChats(); }
+    }
+
+    // ========== Floating Action Bar ==============
+    class FloatingBar {
+        constructor({ codeExport, tableBeautify }) {
+            this.barId = PREFIX + "floating-bar";
+            this.codeExport = codeExport;
+            this.tableBeautify = tableBeautify;
+        }
+        createBar() {
+            if (document.getElementById(this.barId)) return;
+            const bar = document.createElement("div");
+            bar.className = PREFIX + "floating-bar"; bar.id = this.barId;
+            bar.appendChild(this._createZipBtn());
+            bar.appendChild(this._createTableBtn());
+            document.body.appendChild(bar);
+        }
+        _createZipBtn() {
+            const zipBtn = document.createElement("button");
+            zipBtn.className = PREFIX + "floating-btn";
+            zipBtn.innerText = "🗜️ Batch Code ZIP";
+            zipBtn.title = "Export all code blocks in chat as a ZIP file";
+            zipBtn.setAttribute("aria-label", "Batch export all code");
+            zipBtn.onclick = () => this.codeExport.injectJSZip(() => this.codeExport.batchZipExport());
+            return zipBtn;
+        }
+        _createTableBtn() {
+            const tblBtn = document.createElement("button");
+            tblBtn.className = PREFIX + "floating-btn";
+            tblBtn.innerText = "📐 Beautify Tables";
+            tblBtn.title = "Prettify/align all markdown tables";
+            tblBtn.setAttribute("aria-label", "Beautify markdown tables");
+            tblBtn.onclick = () => this.tableBeautify.beautifyTables();
+            return tblBtn;
+        }
+        removeBar() {
+            const bar = document.getElementById(this.barId);
+            if (bar) bar.remove();
+        }
+        init() { this.createBar(); }
+        cleanup() { this.removeBar(); }
+    }
+
+    // ========== Main Manager ==========
+    class TMDevSuiteManager {
+        constructor() {
+            this.features = [];
+            this.observer = null;
+            this.debTimer = null;
+            this.codeExport = new CodeExport();
+            this.tableBeautify = new TableBeautify();
+            this.chatFold = new ChatFold();
+            this.floatingBar = new FloatingBar({ codeExport: this.codeExport, tableBeautify: this.tableBeautify });
+            this.features = [this.codeExport, this.floatingBar, this.tableBeautify, this.chatFold];
+        }
+        init() {
+            injectStyle();
+            this.features.forEach(f => f.init && f.init());
+            this.setupObserver();
+        }
+        cleanup() {
+            this.features.forEach(f => f.cleanup && f.cleanup());
+            document.querySelectorAll("." + PREFIX + "toast").forEach(el => el.remove());
+            const sty = document.getElementById(PREFIX + "style"); if (sty) sty.remove();
+            if (this.observer) this.observer.disconnect();
+            this.observer = null;
+        }
+        setupObserver() {
+            if (this.observer) this.observer.disconnect();
+            const root = document.querySelector(TM_SELECTORS.mainContent) || document.body;
+            this.observer = new MutationObserver(() => this.mainEnhancerDebounced());
+            this.observer.observe(root, { childList: true, subtree: true });
+            this.mainEnhancerDebounced();
+        }
+        mainEnhancerDebounced() {
+            if (this.debTimer) clearTimeout(this.debTimer);
+            this.debTimer = setTimeout(() => this.features.forEach(f => f.init && f.init()), 120);
+        }
+    }
+
+    // ===== SPA Navigation Support & Bootstrap =====
+    function waitForTypingMindMain(fn) {
+        if (document.querySelector(TM_SELECTORS.mainContent)) fn();
+        else setTimeout(() => waitForTypingMindMain(fn), 100);
+    }
+
+    waitForTypingMindMain(() => {
+        const mgr = new TMDevSuiteManager();
+        window.tmDevSuiteManager = mgr;
+        mgr.init();
+        window.addEventListener("popstate", () => mgr.init());
+        window.addEventListener("hashchange", () => mgr.init());
+    });
+
+})();
