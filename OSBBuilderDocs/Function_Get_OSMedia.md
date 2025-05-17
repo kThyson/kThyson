@@ -1,3 +1,11 @@
+title: "Function: Get-OSMedia"
+type: "Public Cmdlet"
+module_file: "Get-OSMedia.ps1"
+scope_dependencies:
+  reads:
+cmdlet_dependencies:
+  - "Get-OSDBuilder"
+  - "Repair-GetOSDMediaTemplateDirectories"
 # Function: Get-OSMedia
 
 ```yaml
@@ -7,8 +15,15 @@ type: "Public Cmdlet"
 module_file: "Get-OSMedia.ps1"
 scope_dependencies:
   reads:
+    - "$SetOSDBuilderPathOSImport"
+    - "$SetOSDBuilderPathOSMedia"
+    - "$AllOSDUpdates (from Get-OSDUpdates)"
 cmdlet_dependencies:
   - "Get-OSDBuilder"
+  - "Get-OSDUpdates"
+  - "Get-ChildItem"
+  - "Import-Clixml"
+  - "Out-GridView"
   - "Repair-GetOSDMediaTemplateDirectories"
 ---
 ```
@@ -21,6 +36,21 @@ cmdlet_dependencies:
 ```powershell
 function Get-OSMedia {
     [CmdletBinding()]
+    Param (
+        [switch]$GridView,
+        [ValidateSet('x64','x86')]
+        [string]$OSArch,
+        [switch]$Newest,
+        [ValidateSet('Client','Server')]
+        [string]$OSInstallationType,
+        [ValidateSet(10)]
+        [string]$OSMajorVersion,
+        [ValidateSet ('22H2','21H2','21H1','20H2',2004,1909,1903,1809,1803,1709,1703,1607,1511,1507)]
+        [string]$OSReleaseId,
+        [ValidateSet('OK','Superseded')]
+        [string]$Revision,
+        [ValidateSet('OK','Update')]
+        [string]$Updates
     )
 }
 ```

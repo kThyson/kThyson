@@ -1,3 +1,16 @@
+title: "Function: Get-OSBuilds"
+type: "Public Cmdlet"
+module_file: "Get-OSBuilds.ps1"
+scope_dependencies:
+  reads:
+    - "$SetOSDBuilderPathOSBuilds"
+    - "$AllOSDUpdates (from Get-OSDUpdates)"
+cmdlet_dependencies:
+  - "Get-OSDBuilder"
+  - "Get-OSDUpdates"
+  - "Get-ChildItem"
+  - "Import-Clixml"
+  - "Out-GridView"
 # Function: Get-OSBuilds
 
 ```yaml
@@ -28,6 +41,18 @@ function Get-OSBuilds {
     [CmdletBinding()]
     param (
         [switch]$GridView,
+        [ValidateSet('x64','x86')]
+        [string]$OSArch = 'x64',
+        [switch]$Newest,
+        [ValidateSet('Client','Server')]
+        [string]$OSInstallationType,
+        [ValidateSet(10)]
+        [string]$OSMajorVersion,
+        [ValidateSet ('24H2','23H2','22H2','21H2','21H1','20H2',2004,1909,1903,1809)]
+        [string]$OSReleaseId,
+        [ValidateSet('OK','Superseded')]
+        [string]$Revision,
+        [ValidateSet('OK','Update')]
         [string]$Updates
     )
 }
