@@ -1,19 +1,13 @@
 // ==UserScript==
-// @name         TypingMind Dev Suite (Refactored, Production)
+// @name         TypingMind Dev Suite
 // @namespace    https://typingmind.com/
 // @version      3.3
 // @description  Modular code export, batch ZIP, markdown table beautifier, chat folding for TypingMind (SPA/PWA robust)
 // @author       TypingMind User
 // @license      MIT
-// @match        *://*/*
+// @match        *://typingmind.com/*
 // @grant        none
 // ==/UserScript==
-
-/*
-MIT License
-Copyright (c) 2024 TypingMind User
-Permission is hereby granted, free of charge, to any person obtaining a copy...
-*/
 
 (() => {
     "use strict";
@@ -25,6 +19,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
         codeBlock: "pre > code",
         mainContent: ".main-content-area",
     };
+
     // ---- Option 5: CSS Improvements (use variables, move inline to classes) ----
     const CSS = `
   :root {
@@ -45,35 +40,65 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
     --tm-codebar-btn-bg-hover: linear-gradient(90deg,#2a64e8,#4ad684);
   }
   .${PREFIX}floating-bar {
-    position: fixed; left: var(--tm-floating-bar-left); bottom: var(--tm-floating-bar-bottom);
-    display: flex; flex-direction: column; gap: 12px; z-index: var(--tm-floating-bar-z);
+    position: fixed;
+    left: var(--tm-floating-bar-left);
+    bottom: var(--tm-floating-bar-bottom);
+    z-index: var(--tm-floating-bar-z);
+    background: #21263b;
+    border-radius: 12px;
+    box-shadow: 0 3px 16px #0b0d1a66;
+    padding: 12px 18px 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    opacity: .91;
+    transition: opacity .14s, background .12s;
   }
+  .${PREFIX}floating-bar:hover { opacity: 1; }
   .${PREFIX}floating-btn {
-    padding: 13px 28px; font-size: var(--tm-btn-font); font-weight: 500;
-    background: var(--tm-btn-bg); color: #fff; border: none; border-radius: var(--tm-btn-radius);
-    box-shadow: 0 2px 8px rgba(40,52,100,.20); opacity: 0.96; cursor: pointer;
-    transition: opacity .13s, background .13s;
+    background: var(--tm-btn-bg);
+    color: #fff;
+    border: none;
+    border-radius: var(--tm-btn-radius);
+    padding: 8px 18px;
+    font-size: var(--tm-btn-font);
+    box-shadow: 0 1.5px 4px rgba(24,28,52,0.13);
+    cursor: pointer;
+    opacity: .89;
+    transition: background .14s,opacity .12s;
     outline: none;
   }
-  .${PREFIX}floating-btn:hover, .${PREFIX}floating-btn:focus {
-    opacity: 1; background: var(--tm-btn-bg-hover);
-  }
+  .${PREFIX}floating-btn:hover, .${PREFIX}floating-btn:focus { opacity: 1; background: var(--tm-btn-bg-hover);}
   .${PREFIX}toast {
-    position: fixed; bottom: 42px; right: 39px;
+    position: fixed;
+    top: 21px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: var(--tm-toast-z);
     background: var(--tm-toast-bg);
     color: var(--tm-toast-fg);
-    padding: 18px 33px; font-size: 18px; border-radius: var(--tm-toast-radius); box-shadow: 0 2px 10px #1117;
-    z-index: var(--tm-toast-z); text-align: center; min-width: 170px; letter-spacing: 0.01em;
+    border-radius: var(--tm-toast-radius);
+    padding: 12px 30px;
+    font-size: 16px;
+    font-family: Inter, sans-serif;
+    box-shadow: 0 2px 14px #13172e77;
+    opacity: 0.93;
+    pointer-events: none;
+    text-align: center;
+    user-select: none;
   }
-  html[data-theme="light"] .${PREFIX}toast {
-    background: var(--tm-toast-bg-light);
-    color: var(--tm-toast-fg-light);
-  }
-  .${PREFIX}toast + .${PREFIX}floating-bar { bottom: 88px!important; }
   .${PREFIX}fold-btn {
-    background:#363a4b; color:#e6ecee; border:none; border-radius:6px;
-    padding:1px 10px; font-size:14px; opacity:0.72; cursor:pointer;
-    position: absolute; top: 5px; right: 8px; z-index:110;
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    background: #303c63;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 20px;
+    padding: 2px 9px 0 9px;
+    opacity: .76;
+    cursor: pointer;
     transition:opacity .13s,background .13s;
     outline: none;
   }
@@ -95,7 +120,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
   .${PREFIX}codebar-btn:hover, .${PREFIX}codebar-btn:focus { opacity: 1; background: var(--tm-codebar-btn-bg-hover);}
   .${PREFIX}has-relative { position: relative !important; }
 `;
-    // ---- End Option 5 ----
 
     // Injects the style tag once
     function injectStyle() {
@@ -125,16 +149,11 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
             return document.querySelectorAll(TM_SELECTORS.codeBlock);
         }
 
-        /**
-         * Generates a filename for a code block based on its content and language.
-         * Improved readability with more comments.
-         */
+        /** Generates a filename for a code block based on its content and language. */
         generateFilename(code, used) {
             let codeText = code.innerText.trim(), filename = "", ext = "";
-            // Try code fence filename
             let m = codeText.match(/^```[\w#+-]*\s+([-\w.]+).*$/m);
             if (m && m[1]) filename = m[1];
-            // Try extracting filename from comments/header
             if (!filename) {
                 const header = codeText.split("\n").slice(0, 3);
                 for (let line of header) {
@@ -142,7 +161,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
                     if (mm && mm[1]) { filename = mm[1]; break; }
                 }
             }
-            // Use language class as fallback
             if (!filename) {
                 let lang = code.className.match(/language-(\w+)/)?.[1] || "txt";
                 ext = ({
@@ -154,33 +172,26 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
                 filename = `exported-code-${lang}${ext}`;
             }
             if (!/\.\w+$/i.test(filename)) filename += ".txt";
-            // Ensure filenames are unique in batch mode
             if (used[filename]) { filename = filename.replace(/(\.\w+$)/, `_${used[filename]}$1`); }
             used[filename] = (used[filename] || 0) + 1;
             return filename;
         }
 
-        /**
-         * Adds export/copy buttons to all code blocks (option 1: helper methods, option 2: avoid redundant queries)
-         */
+        /** Adds export/copy buttons to all code blocks */
         injectPerBlock() {
             this.codeBlocks.forEach(code => {
                 const pre = code.parentElement;
                 if (pre.classList.contains(PREFIX + "has-codebar")) return;
                 pre.classList.add(PREFIX + "has-codebar");
-                // Option 5: Use a class instead of inline style for relative positioning
                 if (window.getComputedStyle(pre).position === "static") pre.classList.add(PREFIX + "has-relative");
-                // Remove previous codebars if any
                 pre.querySelectorAll("." + PREFIX + "codebar").forEach(e => e.remove());
                 const bar = document.createElement("div"); bar.className = PREFIX + "codebar";
-                // Create export and copy buttons via helper for option 1
                 bar.appendChild(this._createExportBtn(code));
                 bar.appendChild(this._createCopyBtn(code));
                 pre.appendChild(bar);
             });
         }
 
-        // Option 1: Helper for export button creation with error handling
         _createExportBtn(code) {
             const eBtn = document.createElement("button");
             eBtn.className = PREFIX + "codebar-btn"; eBtn.innerHTML = "💾";
@@ -194,12 +205,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
                     a.href = URL.createObjectURL(blob); a.download = filename;
                     document.body.appendChild(a); a.click();
                     setTimeout(() => { if (a.parentNode) document.body.removeChild(a); }, 80);
-                    // Option 3: Error handling for clipboard
-                    try {
-                        navigator.clipboard.writeText(filename);
-                    } catch (e) {
-                        showToast("File saved but could not copy filename!");
-                    }
+                    try { navigator.clipboard.writeText(filename); } catch (e) { showToast("File saved but could not copy filename!"); }
                     eBtn.innerHTML = "✅"; setTimeout(() => { eBtn.innerHTML = "💾"; }, 1150);
                     showToast(`<b>${filename}</b> saved &amp; copied!`);
                 } catch (err) {
@@ -209,7 +215,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
             return eBtn;
         }
 
-        // Option 1: Helper for copy button creation with error handling
         _createCopyBtn(code) {
             const cBtn = document.createElement("button");
             cBtn.className = PREFIX + "codebar-btn"; cBtn.innerHTML = "📋";
@@ -235,7 +240,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
             });
         }
 
-        // Loads JSZip only when needed (option 2)
         injectJSZip(cb) {
             if (window.JSZip) return cb();
             if (document.getElementById(PREFIX + "jszip")) return;
@@ -245,7 +249,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
             s.integrity = "sha384-tkPP03pLyMtXk8X8yt5tsuLbl/HN/jwNFUIMJ+UYhVCpNSab6iCMpwLu9nslNWZZ";
             s.crossOrigin = "anonymous";
             s.onload = cb;
-            s.onerror = () => showToast("Failed to load ZIP library.", 2000); // Option 3
+            s.onerror = () => showToast("Failed to load ZIP library.", 2000);
             document.head.appendChild(s);
         }
 
@@ -265,7 +269,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
                 document.body.appendChild(a); a.click();
                 setTimeout(() => { if (a.parentNode) document.body.removeChild(a); }, 80);
                 showToast(`Exported <b>${codeBlocks.length}</b> files as ZIP<br><span style="font-size:14px;">(chat-codeblocks.zip)</span>`, 2100 + 300 * codeBlocks.length);
-            }).catch(() => showToast("ZIP export failed.", 2000)); // Option 3
+            }).catch(() => showToast("ZIP export failed.", 2000));
         }
         init() { this.injectPerBlock(); }
         cleanup() { this.removePerBlock(); }
@@ -273,10 +277,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
 
     // ========== Table Beautify ==========
     class TableBeautify {
-        /**
-         * Aligns markdown tables for each code block found.
-         * Refactored to clarify steps (option 1).
-         */
         alignTable(txt) {
             const lines = txt.split("\n");
             if (!lines.some(l => l.includes("|"))) return txt;
@@ -325,7 +325,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
 
     // ========== Chat Folding ==========
     class ChatFold {
-        // unchanged for brevity (no options specified here)
         foldChats() {
             document.querySelectorAll(TM_SELECTORS.chatBubble).forEach(bubble => {
                 if (bubble.classList.contains(PREFIX + "has-fold")) return;
@@ -386,11 +385,8 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
             if (document.getElementById(this.barId)) return;
             const bar = document.createElement("div");
             bar.className = PREFIX + "floating-bar"; bar.id = this.barId;
-
-            // Option 1: create buttons via helper
             bar.appendChild(this._createZipBtn());
             bar.appendChild(this._createTableBtn());
-
             document.body.appendChild(bar);
         }
         _createZipBtn() {
@@ -443,7 +439,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
             if (this.observer) this.observer.disconnect();
             this.observer = null;
         }
-        // Option 2: Efficient observer with tuned debouncing
         setupObserver() {
             if (this.observer) this.observer.disconnect();
             const root = document.querySelector(TM_SELECTORS.mainContent) || document.body;
@@ -453,16 +448,22 @@ Permission is hereby granted, free of charge, to any person obtaining a copy...
         }
         mainEnhancerDebounced() {
             if (this.debTimer) clearTimeout(this.debTimer);
-            // Option 2: debounce time tuned to 120ms for better performance
             this.debTimer = setTimeout(() => this.features.forEach(f => f.init && f.init()), 120);
         }
     }
 
-    // === SPA Navigation Support & Bootstrap ===
-    const mgr = new TMDevSuiteManager();
-    window.addEventListener("popstate", () => mgr.init());
-    window.addEventListener("hashchange", () => mgr.init());
-    if (document.readyState !== "loading") mgr.init();
-    else document.addEventListener("DOMContentLoaded", () => mgr.init());
+    // ===== SPA Navigation Support & Bootstrap =====
+    function waitForTypingMindMain(fn) {
+        if (document.querySelector(TM_SELECTORS.mainContent)) fn();
+        else setTimeout(() => waitForTypingMindMain(fn), 100);
+    }
+
+    waitForTypingMindMain(() => {
+        const mgr = new TMDevSuiteManager();
+        window.tmDevSuiteManager = mgr;
+        mgr.init();
+        window.addEventListener("popstate", () => mgr.init());
+        window.addEventListener("hashchange", () => mgr.init());
+    });
 
 })();
