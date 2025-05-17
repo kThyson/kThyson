@@ -1,3 +1,3 @@
 # Section: Directory Structure Root
 
-This section describes the root directory of the OSDBuilder instance and its significance. See the related documentation files for more information.
+The root directory of the OSDBuilder instance (e.g., `C:\OSDBuilder`) is the central location for all OSDBuilder operations. All subdirectories for content, builds, tasks, templates, and configuration files are created under this root. The path to the root directory is stored in the global variable `$global:GetOSDBuilderHome` and can be set or changed using the `Initialize-OSDBuilder` function.

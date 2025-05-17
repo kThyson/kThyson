@@ -1,3 +1,3 @@
 # Section: Directory Structure Enable NetFX3
 
-This section describes how the `New-OSBuildTask` cmdlet can be configured to default to enabling .NET Framework 3.5 using the `OSDBuilder.json` configuration file. See the related documentation files for more information.
+The `New-OSBuildTask` cmdlet can be configured to default to enabling .NET Framework 3.5 by setting `"NewOSBuildTaskEnableNetFX3": true` in the `OSDBuilder.json` configuration file. This ensures that .NET Framework 3.5 is enabled by default in new OS build tasks.

@@ -1,3 +1,3 @@
 # Section: Function Output
 
-This section describes the output of each public function in the OSDBuilder module. See the related documentation files for output details.
+Each public function in the OSDBuilder module returns output relevant to its operation, such as custom objects representing OS builds, media, or tasks. Refer to the documentation for each function for details on its output type and structure.

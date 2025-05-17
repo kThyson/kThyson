@@ -1,3 +1,3 @@
 # Section: Legacy Directory Corrections
 
-This section describes how OSDBuilder handles legacy directory names and migrations. See the related documentation files for details.
+OSDBuilder checks for old directory names (such as `<Home>\Media`, `<Home>\OSDownload`, `<Content>\OSDUpdate`) and issues warnings or attempts to rename/move them to their current standard locations. This ensures compatibility with previous versions and helps maintain a clean, standardized directory structure.

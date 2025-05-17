@@ -1,3 +1,13 @@
 # Section: Directory Structure Example Content
 
-This section provides example content for the `OSDBuilder.json` configuration file and explains its effect on OSDBuilder's default behaviors. See the related documentation files for more information.
+Example `OSDBuilder.json` content:
+```json
+{
+  "PathUpdates": "D:\\OSDBuilder_Content\\Updates",
+  "NewOSBuildCreateISO": true,
+  "UpdateOSMediaDownload": true,
+  "ImportOSMediaSkipGrid": false,
+  "NewOSBuildTaskEnableNetFX3": true
+}
+```
+This file allows you to customize default paths and behaviors for OSDBuilder operations without modifying the module scripts directly.

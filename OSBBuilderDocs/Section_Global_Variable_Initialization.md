@@ -1,3 +1,3 @@
 # Section: Global Variable Initialization
 
-This section describes how OSDBuilder initializes and uses global variables for configuration and state management. See the related documentation files for details.
+OSDBuilder initializes global variables such as `$global:GetOSDBuilder` and `$global:SetOSDBuilder` during the `Initialize-OSDBuilder` process. These variables store paths, configuration settings, and operational parameters that are used throughout the module. Proper initialization ensures consistent behavior and allows for customization via JSON configuration files.
