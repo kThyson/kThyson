@@ -28,5 +28,5 @@
         "ms-vscode.powershell",
         "ms-azuretools.vscode-docker"
     ],
-    "typescript.tsdk": "node_modules/typescript"
+    "typescript.tsdk": "node_modules/typescript/lib"
 }
