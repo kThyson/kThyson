@@ -1,0 +1,169 @@
+// ==UserScript==
+// @name         TypingMind Code Utils
+// @description  Collapsible code, copy, syntax highlight, line numbers, metadata, collapse all
+// @version      1.0
+// @match        *://typingmind.com/*
+// @grant        none
+// ==/UserScript==
+
+/* - PRISM.JS (Material Dark theme): CDN injection if not already present - */
+(function injectPrism() {
+  if (!window.Prism) {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-material-dark.min.css';
+    document.head.appendChild(link);
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js';
+    script.onload = function () {
+      // common languages (auto)
+      var scr = document.createElement('script');
+      scr.src = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js';
+      document.body.appendChild(scr);
+    };
+    document.body.appendChild(script);
+
+    // Enable line numbers plugin
+    var pl = document.createElement('script');
+    pl.src = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js';
+    document.body.appendChild(pl);
+
+    var pll = document.createElement('link');
+    pll.rel = 'stylesheet';
+    pll.href = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.css';
+    document.head.appendChild(pll);
+  }
+})();
+
+/* ------------- MAIN UTILITY FUNCTIONALITY ---------------------- */
+function updateAllCodeBlocks() {
+  const CODEBLOCK_SELECTOR = "pre > code";
+  const ALREADY_DONE = "tmutils-processed";
+
+  document.querySelectorAll(CODEBLOCK_SELECTOR).forEach((code, i) => {
+    const pre = code.parentElement;
+    if (pre.classList.contains(ALREADY_DONE)) return;
+    pre.classList.add(ALREADY_DONE);
+
+    // --- 1. Syntax Highlight: add Prism classes then highlight
+    pre.classList.add("line-numbers");
+    code.className = code.className || "language-javascript"; // fallback if not detected
+    if (window.Prism && window.Prism.highlightElement)
+      window.Prism.highlightElement(code);
+
+    // --- 2. Metadata block
+    const lang = (code.className.match(/language-(\w+)/)||[])[1] || "plain";
+    const lineCount = code.textContent.split(/\r?\n/).length;
+    const meta = document.createElement('div');
+    meta.className = "tmutils-metadata";
+    meta.innerHTML = `
+      <span style="font-size:0.92em;color:#888;">
+        <svg height="14" style="vertical-align:middle;margin-right:3px;fill:#666;" viewBox="0 0 14 14" width="14"><rect x="1" y="2" width="12" height="10" rx="2" ry="2" fill="none" stroke="#666" stroke-width="1.3"/><rect x="8" y="4" width="2.5" height="2.5" fill="none" stroke="#666" stroke-width="1.3"/></svg>
+        ${lang.toUpperCase()} &middot; ${lineCount} lines
+      </span>
+    `;
+    meta.style.cssText = "margin-bottom:4px;display:flex;align-items:center;gap:8px;";
+    pre.parentElement.insertBefore(meta, pre);
+
+    // --- 3. Copy button (material style clipboard)
+    const copyBtn = document.createElement('button');
+    copyBtn.title = "Copy code";
+    copyBtn.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle" viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="12" rx="2" fill="none"/><rect x="5" y="3" width="10" height="12" rx="2" fill="none"/></svg>`;
+    copyBtn.className = "tmutils-copy-btn";
+    copyBtn.style.cssText = `
+      background:none;border:none;padding:0 2px;cursor:pointer;float:right;color:#b3b3b3;
+      opacity:0.7;transition:opacity 0.1s;font-size:1.13em;position:absolute;right:7px;top:7px;z-index:3;
+    `;
+    copyBtn.onclick = function () {
+      navigator.clipboard.writeText(code.textContent);
+      copyBtn.style.opacity = 1;
+      copyBtn.style.color = "#3399ff";
+      setTimeout(() => {
+        copyBtn.style.opacity = 0.7;
+        copyBtn.style.color = "#b3b3b3";
+      }, 900);
+    };
+
+    // -- Absolute positioning: make pre relative
+    pre.style.position = "relative";
+    pre.appendChild(copyBtn);
+
+    // --- 4. Collapsible code block
+    const collapseBtn = document.createElement('button');
+    collapseBtn.title = "Collapse/expand code";
+    collapseBtn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle" viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg>`;
+    collapseBtn.className = "tmutils-collapse-btn";
+    collapseBtn.style.cssText = `
+      background:none;border:none;padding:0 3px;margin-left:7px;cursor:pointer;color:#bbb;
+      opacity:0.75;transition:opacity 0.15s;font-size:1em;position:absolute;left:7px;top:7px;z-index:3;
+    `;
+    let isCollapsed = false;
+    collapseBtn.onclick = function() {
+      isCollapsed = !isCollapsed;
+      code.style.display = isCollapsed ? "none" : "";
+      pre.classList.toggle("tmutils-collapsed", isCollapsed);
+      collapseBtn.style.transform = isCollapsed ? "rotate(-90deg)" : "";
+    };
+    pre.appendChild(collapseBtn);
+
+    // --- 5. Style improvements for consistency
+    pre.style.margin = "0 0 22px 0";
+    pre.style.background = "#1e1e1e";
+    pre.style.borderRadius = "8px";
+    pre.style.boxShadow = "0 1.5px 7px -3px #2224";
+    pre.style.paddingRight = "34px";
+  });
+}
+
+/* ------- Collapse/Expand All Button -------- */
+function buildCollapseAllButton() {
+  // Only one!
+  if (document.querySelector('.tmutils-collapseall-tool')) return;
+  const btn = document.createElement('button');
+  btn.className = "tmutils-collapseall-tool";
+  btn.title = "Collapse/expand all code blocks";
+  btn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="10" width="20" height="4" rx="1" fill="#333" stroke="#789"/></svg>`;
+  btn.style.cssText = `
+    position:fixed;top:94px;right:25px;z-index:50;
+    background:#2d3035eb;border:1px solid #384050;border-radius:8px;
+    color:#aaa;font-size:1.15em;padding:5px 12px;box-shadow:0 2px 10px #1113;opacity:.93;
+    cursor:pointer;transition:opacity .15s;
+  `;
+  let expanded = true;
+  btn.onclick = () => {
+    expanded = !expanded;
+    document.querySelectorAll("pre.tmutils-processed").forEach(pre=>{
+      pre.querySelector("code").style.display = expanded ? "" : "none";
+      pre.classList.toggle("tmutils-collapsed",!expanded);
+      // Animate button
+      pre.querySelector('.tmutils-collapse-btn').style.transform = expanded ? "" : "rotate(-90deg)";
+    });
+    btn.style.opacity = expanded ? ".93" : ".82";
+  };
+  document.body.appendChild(btn);
+}
+
+/* --------- Observer for Dynamic Content ---------- */
+const observer = new MutationObserver(() => {
+  updateAllCodeBlocks();
+  buildCollapseAllButton();
+});
+
+// Run on body for newly rendered chats/codes!
+observer.observe(document.body, { childList: true, subtree: true });
+document.addEventListener("DOMContentLoaded", ()=> {
+  updateAllCodeBlocks();
+  buildCollapseAllButton();
+});
+
+/* ---- Minimal styles for clarity (neutral, consistent with TypingMind's palette) ---- */
+const style = document.createElement('style');
+style.innerHTML = `
+.tmutils-metadata { font-family: Inter, sans-serif; padding-left:4px; letter-spacing:0.02em;}
+.tmutils-processed { transition: box-shadow 0.18s;}
+.tmutils-processed.tmutils-collapsed { box-shadow: none; }
+.tmutils-copy-btn:hover, .tmutils-collapse-btn:hover, .tmutils-collapseall-tool:hover { opacity:1; color:#38a; background:#242730ee; }
+.tmutils-copy-btn:active, .tmutils-collapse-btn:active, .tmutils-collapseall-tool:active { background:#19223abb; }
+`;
+document.head.appendChild(style);
