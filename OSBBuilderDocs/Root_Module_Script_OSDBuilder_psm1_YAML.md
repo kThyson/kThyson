@@ -1,4 +1,7 @@
-# Root Module Script: OSDBuilder.psm1 (YAML)
+title: "Root Module Script: OSDBuilder.psm1"
+type: "Module Script"
+```markdown
+# Root Module Script: OSDBuilder.psm1
 
 ```yaml
 ---
@@ -34,3 +37,4 @@ The `OSDBuilder.psm1` script is the main executable file for the OSDBuilder modu
     *   `Export-ModuleMember -Function * -Alias *`: This is a broader export statement that ensures all functions (including any not explicitly listed if the previous export was more restrictive) and all aliases defined within the module's scope are exported.
 
 In essence, `OSDBuilder.psm1` acts as the assembler and publisher for the module, bringing together all its components and defining what the user can directly interact with.
+```

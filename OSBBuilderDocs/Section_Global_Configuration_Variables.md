@@ -30,3 +30,5 @@ OSDBuilder extensively uses two primary global hashtables, initialized by `Initi
         *   `ImportOSMediaSkipGrid`: `[bool]` Default for the `-SkipGrid` parameter in `Import-OSMedia`.
         *   `NewOSBuildCreateISO`: `[bool]` Default for the `-CreateISO` parameter in `New-OSBuild`.
         *   Many other properties corresponding to default values for various cmdlet parameters.
+
+These global variables are essential for the interconnectedness of the OSDBuilder functions, allowing them to share configuration and operate consistently.
